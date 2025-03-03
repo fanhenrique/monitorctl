@@ -1,0 +1,16 @@
+[Unit]
+Description=Automatic brightness control
+After=multi-user.target
+
+[Service]
+ExecStartPre=/usr/local/bin/monitorctl --reset --monitor HDMI-A-0
+ExecStart=/usr/local/bin/monitorctl --down --step 30 --monitor HDMI-A-0
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+

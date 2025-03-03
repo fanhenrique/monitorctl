@@ -1,0 +1,10 @@
+[Unit]
+Description=Timer for automatic brightness control
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+Unit=monitorctl.service
+ 
+[Install]
+WantedBy=timers.target
