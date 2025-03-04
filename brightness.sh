@@ -1,26 +1,37 @@
 #!/bin/bash
 
-function help(){
+MIN_BRIGHTNESS=0.2
+MAX_BRIGHTNESS=3.0
+# Step Up/Down brightnes by: 5 = ".05", 10 = ".10" ...
+STEP=5 #TODO change to use float
+OPERATION=""
+BRIGHTNESS=""
+MONITOR=""
+
+function help() {
     echo
     echo "Usage: $0 [OPTIONS...]"
     echo
-    echo "Brightness options:"
-    echo "  -u, --up                        Up brightness"
-    echo "  -d, --down                      Down brightness"
-    echo "  -r, --reset                     Reset brightness to 1.0"
-    echo "  -s, --step [number]             Step brightness (percentage) [default 5]"
+    echo "Help:"
+    printf "  %-30s %s\n" "-h, --help" "Show this help message"
     echo
     echo "Monitor options:"
-    echo "  -m, --monitor [monitor name]    Monitor"
-    echo "  -f, --find                      Find monitor name"
+    printf "  %-30s %s\n" "-m, --monitor [monitor name]" "Monitor (required)"
+    printf "  %-30s %s\n" "-f, --find" "Find monitor name"
     echo
-    echo "  -h, --help                      Show this help message"
+    echo "Brightness options:"
+    printf "  %-30s %-30s %s\n" "-b, --brightness [number]" "Brightness [$MIN_BRIGHTNESS~$MAX_BRIGHTNESS]" "(priority 1)"
+    printf "  %-30s %-30s %s\n" "-r, --reset" "Reset brightness to 1.0" "(priority 2)"
+    printf "  %-30s %-30s %s\n" "-u, --up" "Increase brightness" "(priority 3)"
+    printf "  %-30s %-30s %s\n" "-d, --down" "Decrease brightness" "(priority 4)"
+    printf "  %-30s %-30s %s\n" "-s, --step [number]" "Step brightness [default 0.5]" "(requires --up or --down)"
     echo
 }
 
+# TODO change to use bc
 # This function was adapted from the script:
 # https://askubuntu.com/questions/1150339/increment-brightness-by-value-using-xrandr
-function brightnes(){
+function brightnes(){ 
 
     CurrBright=$( xrandr --verbose --current | grep ^"$2" -A5 | tail -n1 )
     CurrBright="${CurrBright##* }"  # Get brightness level with decimal place
@@ -36,9 +47,9 @@ function brightnes(){
 
     [[ "$1" == "up" ]] && MathBright=$(( MathBright + STEP ))
     [[ "$1" == "down" ]] && MathBright=$(( MathBright - STEP ))
-    [[ "$1" == "reset" ]] && MathBright=100
+
     [[ "${MathBright:0:1}" == "-" ]] && MathBright=0    # Negative not allowed
-    [[ "$MathBright" -gt 999  ]] && MathBright=999      # Can't go over 9.99
+    [[ "$MathBright" -gt 299  ]] && MathBright=299      # Can't go over 2.99
 
     # Ensure MathBright is never less than 0.2
     [[ "$MathBright" -lt 20 ]] &&  MathBright=20
@@ -52,33 +63,36 @@ function brightnes(){
     fi
 
     xrandr --output "$2" --brightness "$CurrBright"   # Set new brightness
-
-    # Display current brightness
-    printf "Monitor %s:" "$2"
-    echo | xrandr --verbose --current | grep ^"$2" -A5 | tail -n1
 } 
+
+# Display current brightness
+function status(){
+    printf "Monitor %s brightness changed to %s\n" \
+        "$1" \
+        "$(xrandr --verbose --current | grep "^$1" -A5 | tail -n1 | awk '/Brightness/ {print $2}')"
+}
 
 function findMonitor(){
     # Find monitor name with: xrandr | grep "connected"
     xrandr | grep "connected"
 }
 
-STEP=5           # Step Up/Down brightnes by: 5 = ".05", 10 = ".10", etc.
-OPERATION=""
-MONITOR=""
-
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
-        -u|--up)
-            OPERATION="up"
-            shift
-            ;;
-        -d|--down)
-            OPERATION="down"
-            shift
+        -b|--brightness)
+            BRIGHTNESS="$2"
+            shift 2
             ;;
         -r|--reset)
             OPERATION="reset"
+            shift
+            ;;
+        -u|--up)
+            [[ "$OPERATION" != 'reset' ]] && OPERATION="up"
+            shift
+            ;;
+        -d|--down)
+            [[ "$OPERATION" != 'reset' && "$OPERATION" != 'up' ]] && OPERATION="down"
             shift
             ;;
         -s|--step)
@@ -105,5 +119,43 @@ while [[ "$#" -gt 0 ]]; do
     esac
 done  
 
-brightnes "$OPERATION" "$MONITOR" "$STEP"
-exit 0
+if [[ -z "$MONITOR" ]]; then
+    echo "Error: A monitor name is required."
+    help
+    exit 1
+fi
+
+if [[ -n "$BRIGHTNESS" ]]; then
+    
+    if (( $(echo "$BRIGHTNESS < $MIN_BRIGHTNESS" | bc -l) )) || (( $(echo "$BRIGHTNESS > $MAX_BRIGHTNESS" | bc -l) )); then
+        echo "Error: Brightness must be between [$MIN_BRIGHTNESS~$MAX_BRIGHTNESS]"
+        help
+        exit 1
+    fi
+
+    xrandr --output "$MONITOR" --brightness "$BRIGHTNESS"
+    status "$MONITOR"
+    exit 0
+
+elif [[ "$OPERATION" == "reset" ]]; then
+
+    xrandr --output "$MONITOR" --brightness 1.0
+    status "$MONITOR"
+    exit 0
+
+elif [[ "$OPERATION" == "up" ]]; then
+    
+    brightnes "up" "$MONITOR" "$STEP"
+    status "$MONITOR"
+    exit 0
+
+elif [[ "$OPERATION" == "down" ]]; then
+    
+    brightnes "down" "$MONITOR" "$STEP"
+    status "$MONITOR"
+    exit 0
+fi
+
+echo "Error: No operation found"
+help
+exit 1
