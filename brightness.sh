@@ -18,6 +18,7 @@ function help() {
     echo "Monitor options:"
     printf "  %-30s %s\n" "-m, --monitor [monitor name]" "Monitor (required)"
     printf "  %-30s %s\n" "-f, --find" "Find monitor name"
+    printf "  %-30s %s\n" "-c, --current" "Current monitor brightness"
     echo
     echo "Brightness options:"
     printf "  %-30s %-30s %s\n" "-b, --brightness [number]" "Brightness [$MIN_BRIGHTNESS~$MAX_BRIGHTNESS]" "(priority 1)"
@@ -102,6 +103,10 @@ while [[ "$#" -gt 0 ]]; do
         -m|--monitor)
             MONITOR="$2"
             shift 2
+            ;;
+        -c|--current)
+            status "$2"
+            exit 0
             ;;
         -f|--find)
             findMonitor
