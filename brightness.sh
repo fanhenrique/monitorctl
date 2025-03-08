@@ -21,7 +21,7 @@ function help() {
     printf "  %-30s %s\n" "-c, --current" "Current monitor brightness"
     echo
     echo "Brightness options:"
-    printf "  %-30s %-30s %s\n" "-b, --brightness [number]" "Brightness [$MIN_BRIGHTNESS~$MAX_BRIGHTNESS]" "(priority 1)"
+    printf "  %-30s %-30s %s\n" "-b, --brightness [number]" "Brightness [$MIN_BRIGHTNESS-$MAX_BRIGHTNESS]" "(priority 1)"
     printf "  %-30s %-30s %s\n" "-r, --reset" "Reset brightness to 1.0" "(priority 2)"
     printf "  %-30s %-30s %s\n" "-u, --up" "Increase brightness" "(priority 3)"
     printf "  %-30s %-30s %s\n" "-d, --down" "Decrease brightness" "(priority 4)"
@@ -133,7 +133,7 @@ fi
 if [[ -n "$BRIGHTNESS" ]]; then
     
     if (( $(echo "$BRIGHTNESS < $MIN_BRIGHTNESS" | bc -l) )) || (( $(echo "$BRIGHTNESS > $MAX_BRIGHTNESS" | bc -l) )); then
-        echo "Error: Brightness must be between [$MIN_BRIGHTNESS~$MAX_BRIGHTNESS]"
+        echo "Error: Brightness must be between [$MIN_BRIGHTNESS-$MAX_BRIGHTNESS]"
         help
         exit 1
     fi
