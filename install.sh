@@ -7,35 +7,35 @@ printf "\nPre-installation Completed Successfully\n"
 printf "\nStarting Installation ...\n\n"
 
 # Copy the config file to /etc/monitorctl/config
-sudo mkdir -p /etc/monitorctl
-sudo cp config /etc/monitorctl
-echo "config file copied to /etc/monitorctl/config"
+mkdir -p $HOME/.config/monitorctl
+cp ./config $HOME/.config/monitorctl/config
+echo "config file copied to $HOME/.config/monitorctl/config"
 
 # Makes the script "brightess.sh" a command
 sudo cp brightness.sh /usr/local/bin/brightness
 sudo chmod +x /usr/local/bin/brightness
 echo "brightness.sh copied to /usr/local/bin/brightness"
 
-# Makes the script "monitorctl.sh" a command
-sudo cp monitorctl.sh /usr/local/bin/monitorctl
-sudo chmod +x /usr/local/bin/monitorctl
-echo "monitorctl.sh copied to /usr/local/bin/monitorctl"
+sudo mkdir -p /usr/local/lib/monitorctl
 
-# Create a service to control the monitor
-sudo cp monitorctl.service /etc/systemd/system/monitorctl.service
-echo "monitorctl.service copied to /etc/systemd/system/monitorctl.service"
+# Makes the script "monitorctl.sh" a library
+sudo cp monitorctl.sh /usr/local/lib/monitorctl/monitorctl
+sudo chmod +x /usr/local/lib/monitorctl/monitorctl
+echo "monitorctl.sh copied to /usr/local/lib/monitorctl/monitorctl"
+
+# Makes the script "utils.sh" a library
+sudo cp utils.sh /usr/local/lib/monitorctl/utils
+echo "utils.sh copied to /usr/local/lib/monitorctl/utils"
 
 printf "\nInstallation Completed Successfully\n"
 
-printf "\nStarting the Monitor Control (monitorctl) Service ...\n\n"
+printf "\nStarting Configuration cron ...\n"
 
-sudo systemctl daemon-reload
-echo "Reload systemd"
+source /usr/local/lib/monitorctl/utils
 
-sudo systemctl enable monitorctl.service
-echo "Enable monitorctl service"
+LOG_FILE=$(get_value 'LOG_FILE')
+INTERVAL=$(get_value 'INTERVAL')
 
-sudo systemctl start monitorctl.service
-echo "Start monitorctl service"
+command $INTERVAL $LOG_FILE
 
-printf "\nMonitor Control Service (monitorclt) Started Successfully\n\n"
+printf "\nConfiguration cron Completed Successfully\n"
