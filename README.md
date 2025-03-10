@@ -71,6 +71,8 @@ bindsym $mod+m exec --no-startup-id brightness --reset --monitor HDMI-A-0
 
 The cron command-line utility is a task scheduler for Unix-like operating systems. It allows you to automate the execution of repetitive tasks.
 
+For more information, see [Cron ArchWiki](https://wiki.archlinux.org/title/Cron).
+
 To schedule a brightness filter for continuous execution at intervals defined by cron, run [`install.sh`](./install.sh).
 
 Before installing, review the [`config`](./config) file, which allows you to control the brightness level and the interval for the task to run in cron, as well as the filter's operating schedule.
@@ -83,6 +85,6 @@ chmod +x install.sh
 ./install.sh
 ```
 
-> After installation, the configuration file will be in `$HOME/.config/monitorctl/config`
+> After installation, the configuration file will be in `$HOME/.config/monitorctl/config`.
 
-> If any problems occur, check the log file at `/tmp/monitorctl.log`
+> If any problems occur, check the log file at `/tmp/monitorctl.log`.
