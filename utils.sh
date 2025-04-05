@@ -32,7 +32,7 @@ command(){
     local interval="$1"
     local log_file="$2"
 
-    CRON_COMMAND="*/$interval * * * * /usr/local/lib/monitorctl/monitorctl >> /tmp/$log_file 2>&1"
+    CRON_COMMAND="*/$interval * * * * /usr/local/lib/monitorctl/monitorctl >> $log_file 2>&1"
 
     # (crontab -l; echo "$CRON_COMMAND") | crontab -
     (crontab -l | grep -v '/usr/local/lib/monitorctl/monitorctl'; echo "$CRON_COMMAND") | crontab -

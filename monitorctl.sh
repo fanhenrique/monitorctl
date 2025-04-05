@@ -41,6 +41,8 @@ CURRENT_BRIGHTNESS="$(xrandr --verbose --current | grep "^HDMI-A-0" -A5 | tail -
 command $INTERVAL $LOG_FILE > /dev/null
 
 if [ "$(echo "$CURRENT_BRIGHTNESS > $BRIGHTNESS" | bc -l)" -eq 1 ]; then
+    # Unix time at the time of executing the below command
+    printf "$(date +%s): "
     # Adjust brightness according to config file
     /usr/local/bin/brightness --brightness $BRIGHTNESS --monitor $MONITOR
 fi

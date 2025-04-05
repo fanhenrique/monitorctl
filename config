@@ -18,5 +18,5 @@ START_NIGHT=19:00
 END_NIGHT=06:30
 
 # When the system is restarted, a new file is created
-# This file will be in /tpm/LOG_FILE
-LOG_FILE=monitorctl.log 
+# This file will be in /tmp/LOG_FILE
+LOG_FILE=/tmp/monitorctl.log 
