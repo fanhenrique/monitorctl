@@ -4,18 +4,18 @@ MONITOR=HDMI-A-0
 
 # Interval to run script in crontab
 # [0-59] 
-INTERVAL=15
+INTERVAL=10
 
 # Brightness intensity
 # Default interval [0.2-3.0]
 # if necessary, change the MIN_BRIGHTNESS and MAX_BRIGHTNESS variables of the brightness.sh.
-DAY_BRIGHTNESS=0.85
-NIGHT_BRIGHTNESS=0.65
+DAY_BRIGHTNESS=0.90
+NIGHT_BRIGHTNESS=0.75
 
 # Use 24-Hour Time Format
 # [0-23]:[0-59]
 START_NIGHT=19:00
-END_NIGHT=06:30
+END_NIGHT=08:00
 
 # When the system is restarted, a new file is created
 # This file will be in /tmp/LOG_FILE
