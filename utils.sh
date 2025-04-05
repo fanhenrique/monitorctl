@@ -40,3 +40,15 @@ command(){
     echo "New cron job add:"
     echo "$CRON_COMMAND"
 }
+
+delete_log(){
+
+    local log_file="$1"
+
+    if [ -f "$log_file" ]; then
+        printf "Log file deleted: $log_file\n"
+        rm "$log_file"
+    else
+        printf "Log file not found: $log_file\n"
+    fi
+}

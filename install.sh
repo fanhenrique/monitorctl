@@ -36,6 +36,9 @@ source /usr/local/lib/monitorctl/utils
 LOG_FILE=$(get_value 'LOG_FILE')
 INTERVAL=$(get_value 'INTERVAL')
 
+# Delete old log file
+delete_log $LOG_FILE
+
 command $INTERVAL $LOG_FILE
 
 printf "\nConfiguration cron Completed Successfully\n"
