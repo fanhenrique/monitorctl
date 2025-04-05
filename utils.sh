@@ -16,12 +16,18 @@ in_minutes() {
         return 1
     fi
 
-    local hours=${BASH_REMATCH[1]}
-    local minutes=${BASH_REMATCH[2]}
+    hours=$((10#${BASH_REMATCH[1]}))
+    minutes=$((10#${BASH_REMATCH[2]}))
 
-    # Ensures that hours and minutes are valid numbers
-    if (( hours < 0 || hours > 23 || minutes < 0 || minutes > 59 )); then
-        echo "Error: Time outside valid range (00:00 - 23:59)." >&2
+    # Ensures hours are valid numbers
+    if (( hours < 0 || hours > 23 )); then
+        echo "Error: Hour outside valid range [00-23]." >&2
+        return 1
+    fi
+    
+    # Ensures minutes are valid numbers
+    if (( minutes < 0 || minutes > 59 )); then
+        echo "Error: Minutes outside valid range [00-59]." >&2
         return 1
     fi
 
