@@ -86,6 +86,7 @@ function findMonitor(){
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         -b|--brightness)
+            [[ $# -lt 2 ]] && { echo "Missing value for $1"; exit 1; }
             BRIGHTNESS="$2"
             shift 2
             ;;
@@ -113,8 +114,8 @@ while [[ "$#" -gt 0 ]]; do
             done
             ;;
         -c|--current)
-            status "$2"
-            exit 0
+            OPERATION="current"
+            shift
             ;;
         -f|--find)
             findMonitor
@@ -130,7 +131,7 @@ while [[ "$#" -gt 0 ]]; do
             exit 1
             ;;
     esac
-done  
+done
 
 if [[ ${#MONITORS[@]} -eq 0 ]]; then
     echo "Error: At least one monitor is required."
@@ -172,6 +173,12 @@ elif [[ "$OPERATION" == "down" ]]; then
     
     for MONITOR in "${MONITORS[@]}"; do
         change_brightness "down" "$MONITOR" "$STEP"
+        status "$MONITOR"
+    done
+    exit 0
+
+elif [[ "$OPERATION" == "current" ]]; then
+    for MONITOR in "${MONITORS[@]}"; do
         status "$MONITOR"
     done
     exit 0
