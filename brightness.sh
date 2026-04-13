@@ -1,12 +1,17 @@
 #!/bin/bash
 
+set -euo pipefail
+
+command -v xrandr >/dev/null || { echo "xrandr not found"; exit 1; }
+command -v bc >/dev/null || { echo "bc not found"; exit 1; }
+
 MIN_BRIGHTNESS=0.2
 MAX_BRIGHTNESS=3.0
 # Step Up/Down brightnes by: 5 = ".05", 10 = ".10" ...
 STEP=5 #TODO change to use float
 OPERATION=""
 BRIGHTNESS=""
-MONITOR=""
+MONITORS=()
 
 function help() {
     echo
@@ -32,7 +37,7 @@ function help() {
 # TODO change to use bc
 # This function was adapted from the script:
 # https://askubuntu.com/questions/1150339/increment-brightness-by-value-using-xrandr
-function brightnes(){ 
+function change_brightness(){ 
 
     CurrBright=$( xrandr --verbose --current | grep ^"$2" -A5 | tail -n1 )
     CurrBright="${CurrBright##* }"  # Get brightness level with decimal place
@@ -101,8 +106,11 @@ while [[ "$#" -gt 0 ]]; do
             shift 2
             ;;
         -m|--monitor)
-            MONITOR="$2"
-            shift 2
+            shift
+            while [[ $# -gt 0 && "$1" != -* ]]; do
+                MONITORS+=("$1")
+                shift
+            done
             ;;
         -c|--current)
             status "$2"
@@ -124,8 +132,8 @@ while [[ "$#" -gt 0 ]]; do
     esac
 done  
 
-if [[ -z "$MONITOR" ]]; then
-    echo "Error: A monitor name is required."
+if [[ ${#MONITORS[@]} -eq 0 ]]; then
+    echo "Error: At least one monitor is required."
     help
     exit 1
 fi
@@ -138,26 +146,34 @@ if [[ -n "$BRIGHTNESS" ]]; then
         exit 1
     fi
 
-    xrandr --output "$MONITOR" --brightness "$BRIGHTNESS"
-    status "$MONITOR"
+    for MONITOR in "${MONITORS[@]}"; do
+        xrandr --output "$MONITOR" --brightness "$BRIGHTNESS"
+        status "$MONITOR"
+    done
     exit 0
 
 elif [[ "$OPERATION" == "reset" ]]; then
 
-    xrandr --output "$MONITOR" --brightness 1.0
-    status "$MONITOR"
+    for MONITOR in "${MONITORS[@]}"; do
+        xrandr --output "$MONITOR" --brightness 1.0
+        status "$MONITOR"
+    done
     exit 0
 
 elif [[ "$OPERATION" == "up" ]]; then
     
-    brightnes "up" "$MONITOR" "$STEP"
-    status "$MONITOR"
+    for MONITOR in "${MONITORS[@]}"; do
+        change_brightness "up" "$MONITOR" "$STEP"
+        status "$MONITOR"
+    done
     exit 0
 
 elif [[ "$OPERATION" == "down" ]]; then
     
-    brightnes "down" "$MONITOR" "$STEP"
-    status "$MONITOR"
+    for MONITOR in "${MONITORS[@]}"; do
+        change_brightness "down" "$MONITOR" "$STEP"
+        status "$MONITOR"
+    done
     exit 0
 fi
 
