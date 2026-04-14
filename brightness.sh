@@ -5,7 +5,7 @@ set -euo pipefail
 command -v xrandr >/dev/null || { echo "xrandr not found"; exit 1; }
 command -v bc >/dev/null || { echo "bc not found"; exit 1; }
 
-MIN_BRIGHTNESS=0.2
+MIN_BRIGHTNESS=0.3
 MAX_BRIGHTNESS=3.0
 # Step value (float between 0.0 and 1.0)
 STEP=0.1
@@ -87,9 +87,9 @@ change_brightness() {
 
 # Display current brightness
 function status(){
-    printf "Monitor %s brightness changed to %s\n" \
+    printf "Monitor %s brightness: %s\n" \
         "$1" \
-        "$(xrandr --verbose --current | grep "^$1" -A5 | tail -n1 | awk '/Brightness/ {print $2}')"
+        "$(xrandr --verbose --current | grep "^$1" -A5 | grep -i brightness | awk '{print $2}')"
 }
 
 function findMonitor(){
@@ -166,39 +166,39 @@ if [[ -n "$BRIGHTNESS" ]]; then
         exit 1
     fi
 
-    for MONITOR in "${MONITORS[@]}"; do
-        xrandr --output "$MONITOR" --brightness "$BRIGHTNESS"
-        status "$MONITOR"
+    for monitor in "${MONITORS[@]}"; do
+        xrandr --output "$monitor" --brightness "$BRIGHTNESS"
+        status "$monitor"
     done
     exit 0
 
 elif [[ "$OPERATION" == "reset" ]]; then
 
-    for MONITOR in "${MONITORS[@]}"; do
-        xrandr --output "$MONITOR" --brightness 1.0
-        status "$MONITOR"
+    for monitor in "${MONITORS[@]}"; do
+        xrandr --output "$monitor" --brightness 1.0
+        status "$monitor"
     done
     exit 0
 
 elif [[ "$OPERATION" == "up" ]]; then
     
-    for MONITOR in "${MONITORS[@]}"; do
-        change_brightness "up" "$MONITOR" "$STEP"
-        status "$MONITOR"
+    for monitor in "${MONITORS[@]}"; do
+        change_brightness "up" "$monitor" "$STEP"
+        status "$monitor"
     done
     exit 0
 
 elif [[ "$OPERATION" == "down" ]]; then
     
-    for MONITOR in "${MONITORS[@]}"; do
-        change_brightness "down" "$MONITOR" "$STEP"
-        status "$MONITOR"
+    for monitor in "${MONITORS[@]}"; do
+        change_brightness "down" "$monitor" "$STEP"
+        status "$monitor"
     done
     exit 0
 
 elif [[ "$OPERATION" == "current" ]]; then
-    for MONITOR in "${MONITORS[@]}"; do
-        status "$MONITOR"
+    for monitor in "${MONITORS[@]}"; do
+        status "$monitor"
     done
     exit 0
 fi
