@@ -34,42 +34,50 @@ function help() {
     echo
 }
 
-# TODO change to use bc
-# This function was adapted from the script:
-# https://askubuntu.com/questions/1150339/increment-brightness-by-value-using-xrandr
-function change_brightness(){ 
+change_brightness() {
 
-    CurrBright=$( xrandr --verbose --current | grep ^"$2" -A5 | tail -n1 )
-    CurrBright="${CurrBright##* }"  # Get brightness level with decimal place
+    local operation="$1"
+    local monitor="$2"
+    local step="$3"
 
-    Left=${CurrBright%%"."*}        # Extract left of decimal point
-    Right=${CurrBright#*"."}        # Extract right of decimal point
-
-    MathBright="0"
-    [[ "$1" == "up" && "$Left" != 0 && "$3" -lt 10 ]] && STEP=10   # > 1.0, only .1 works and up
-    [[ "$Left" != 0 ]] && MathBright="$Left"00                      # 1.0 becomes "100"
-    [[ "${#Right}" -eq 1 ]] && Right="$Right"0                      # 0.5 becomes "50"
-    MathBright=$(( MathBright + Right ))
-
-    [[ "$1" == "up" ]] && MathBright=$(( MathBright + STEP ))
-    [[ "$1" == "down" ]] && MathBright=$(( MathBright - STEP ))
-
-    [[ "${MathBright:0:1}" == "-" ]] && MathBright=0    # Negative not allowed
-    [[ "$MathBright" -gt 299  ]] && MathBright=299      # Can't go over 2.99
-
-    # Ensure MathBright is never less than 0.2
-    [[ "$MathBright" -lt 20 ]] &&  MathBright=20
+    #  Validate: step must be between 0.0 and 1.0
+    if ! [[ $(echo "$step >= 0 && $step <= 1" | bc -l) -eq 1 ]]; then
+        echo "Error: step must be between 0.0 and 1.0"
+        return 1
+    fi
     
-    if [[ "${#MathBright}" -eq 3 ]] ; then
-        MathBright="$MathBright"000         # Pad with lots of zeros
-        CurrBright="${MathBright:0:1}.${MathBright:1:2}"
+    # Get current brightness
+    local current_brightness
+    current_brightness=$(xrandr --verbose --current | grep "^$monitor" -A5 | grep -i brightness | awk '{print $2}')
+
+    # Compute new brightness (with higher internal precision)
+    local raw_brightness
+    if [[ "$operation" == "up" ]]; then
+        raw_brightness=$(echo "scale=4; $current_brightness + $step" | bc -l)
+    elif [[ "$operation" == "down" ]]; then
+        raw_brightness=$(echo "scale=4; $current_brightness - $step" | bc -l)
     else
-        MathBright="$MathBright"000         # Pad with lots of zeros
-        CurrBright=".${MathBright:0:2}"
+        echo "Error: invalid operation"
+        return 1
     fi
 
-    xrandr --output "$2" --brightness "$CurrBright"   # Set new brightness
-} 
+    # Ensure it does not go below minimum
+    if (( $(echo "$raw_brightness < $MIN_BRIGHTNESS" | bc -l) )); then
+        raw_brightness=$MIN_BRIGHTNESS
+    fi
+
+    # Ensure it does not exceed maximum
+    if (( $(echo "$raw_brightness > $MAX_BRIGHTNESS" | bc -l) )); then
+        raw_brightness=$MAX_BRIGHTNESS
+    fi
+
+    # Round to 2 decimal places
+    local new_brightness
+    new_brightness=$(printf "%.2f" "$raw_brightness")
+
+    # Apply new brightness
+    xrandr --output "$monitor" --brightness "$new_brightness"
+}
 
 # Display current brightness
 function status(){
