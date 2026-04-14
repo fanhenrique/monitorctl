@@ -40,6 +40,12 @@ change_brightness() {
     local monitor="$2"
     local step="$3"
 
+    # Validate monitor
+    if ! xrandr | grep -q "^$monitor connected"; then
+        echo "Error: monitor '$monitor' not found"
+        return 1
+    fi
+
     #  Validate: step must be between 0.0 and 1.0
     if ! [[ $(echo "$step >= 0 && $step <= 1" | bc -l) -eq 1 ]]; then
         echo "Error: step must be between 0.0 and 1.0"
