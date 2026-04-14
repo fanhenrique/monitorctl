@@ -7,8 +7,8 @@ command -v bc >/dev/null || { echo "bc not found"; exit 1; }
 
 MIN_BRIGHTNESS=0.2
 MAX_BRIGHTNESS=3.0
-# Step Up/Down brightnes by: 5 = ".05", 10 = ".10" ...
-STEP=5 #TODO change to use float
+# Step value (float between 0.0 and 1.0)
+STEP=0.1
 OPERATION=""
 BRIGHTNESS=""
 MONITORS=()
@@ -30,7 +30,7 @@ function help() {
     printf "  %-30s %-30s %s\n" "-r, --reset" "Reset brightness to 1.0" "(priority 2)"
     printf "  %-30s %-30s %s\n" "-u, --up" "Increase brightness" "(priority 3)"
     printf "  %-30s %-30s %s\n" "-d, --down" "Decrease brightness" "(priority 4)"
-    printf "  %-30s %-30s %s\n" "-s, --step [number]" "Step brightness [default 0.5]" "(requires --up or --down)"
+    printf "  %-30s %-30s %s\n" "-s, --step [number]" "Step brightness [default 0.1]" "(requires --up or --down)"
     echo
 }
 
@@ -117,7 +117,12 @@ while [[ "$#" -gt 0 ]]; do
             shift
             ;;
         -s|--step)
+            [[ $# -lt 2 ]] && { echo "Missing value for $1"; exit 1; }
             STEP="$2"
+            if ! [[ $(echo "$STEP >= 0 && $STEP <= 1" | bc -l) -eq 1 ]]; then
+                echo "Error: step must be between 0.0 and 1.0"
+                exit 1
+            fi
             shift 2
             ;;
         -m|--monitor)
