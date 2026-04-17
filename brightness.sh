@@ -9,6 +9,7 @@ MIN_BRIGHTNESS=0.3
 MAX_BRIGHTNESS=3.0
 # Step value (float between 0.0 and 1.0)
 STEP=0.1
+
 OPERATION=""
 BRIGHTNESS=""
 MONITORS=()
@@ -23,7 +24,7 @@ function help() {
     echo "Monitor options:"
     printf "  %-30s %s\n" "-m, --monitor [monitor name]" "Monitor (required)"
     printf "  %-30s %s\n" "-f, --find" "Find monitor name"
-    printf "  %-30s %s\n" "-c, --current" "Current monitor brightness"
+    printf "  %-30s %s\n" "--status" "Current monitor brightness"
     echo
     echo "Brightness options:"
     printf "  %-30s %-30s %s\n" "-b, --brightness [number]" "Brightness [$MIN_BRIGHTNESS-$MAX_BRIGHTNESS]" "(priority 1)"
@@ -34,6 +35,11 @@ function help() {
     echo
 }
 
+is_connected() {
+    local monitor="$1"
+    xrandr | awk -v m="$monitor" '$1 == m && / connected/ {found=1} END {exit !found}'
+}
+
 change_brightness() {
 
     local operation="$1"
@@ -41,20 +47,23 @@ change_brightness() {
     local step="$3"
 
     # Validate monitor
-    if ! xrandr | grep -q "^$monitor connected"; then
+    if ! is_connected "$monitor"; then
         echo "Error: monitor '$monitor' not found"
         return 1
     fi
 
     #  Validate: step must be between 0.0 and 1.0
-    if ! [[ $(echo "$step >= 0 && $step <= 1" | bc -l) -eq 1 ]]; then
-        echo "Error: step must be between 0.0 and 1.0"
+    if ! awk -v s="$step" 'BEGIN { exit !(s >= 0 && s <= 1) }'; then
+        echo "Error: step must be between 0.0 and 1.0 (precision 1 decimal)"
         return 1
     fi
     
     # Get current brightness
     local current_brightness
     current_brightness=$(xrandr --verbose --current | grep "^$monitor" -A5 | grep -i brightness | awk '{print $2}')
+    #TODO: fix this command
+    # xrandr --verbose --current | awk -v m="$monitor" '$0 ~ "^"m {found=1} found && /Brightness/ {print $2; exit}'
+    # current_brightness=$(xrandr --verbose --current | awk -v m="$monitor" '$0 ~ "^"m {found=1} found && /Brightness/ {print $2}')
 
     # Compute new brightness (with higher internal precision)
     local raw_brightness
@@ -85,11 +94,12 @@ change_brightness() {
     xrandr --output "$monitor" --brightness "$new_brightness"
 }
 
-# Display current brightness
-function status(){
-    printf "Monitor %s brightness: %s\n" \
-        "$1" \
-        "$(xrandr --verbose --current | grep "^$1" -A5 | grep -i brightness | awk '{print $2}')"
+# Display current status brightness
+function status() {
+    local monitor="$1"
+    local value
+    value=$(xrandr --verbose --current | grep "^$monitor" -A5 | grep -i brightness | awk '{print $2}')
+    printf "Monitor %s brightness: %s\n" "$monitor" "$value"
 }
 
 function findMonitor(){
@@ -132,8 +142,8 @@ while [[ "$#" -gt 0 ]]; do
                 shift
             done
             ;;
-        -c|--current)
-            OPERATION="current"
+        --status)
+            OPERATION="status"
             shift
             ;;
         -f|--find)
@@ -153,9 +163,14 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 if [[ ${#MONITORS[@]} -eq 0 ]]; then
-    echo "Error: At least one monitor is required."
-    help
-    exit 1
+    if [[ "$OPERATION" == "status" ]]; then
+        # Auto-detect all monitors
+        mapfile -t MONITORS < <(xrandr | awk '/ connected/ {print $1}')
+    else
+        echo "Error: At least one monitor is required."
+        help
+        exit 1
+    fi
 fi
 
 if [[ -n "$BRIGHTNESS" ]]; then
@@ -173,7 +188,6 @@ if [[ -n "$BRIGHTNESS" ]]; then
     exit 0
 
 elif [[ "$OPERATION" == "reset" ]]; then
-
     for monitor in "${MONITORS[@]}"; do
         xrandr --output "$monitor" --brightness 1.0
         status "$monitor"
@@ -181,7 +195,6 @@ elif [[ "$OPERATION" == "reset" ]]; then
     exit 0
 
 elif [[ "$OPERATION" == "up" ]]; then
-    
     for monitor in "${MONITORS[@]}"; do
         change_brightness "up" "$monitor" "$STEP"
         status "$monitor"
@@ -196,7 +209,7 @@ elif [[ "$OPERATION" == "down" ]]; then
     done
     exit 0
 
-elif [[ "$OPERATION" == "current" ]]; then
+elif [[ "$OPERATION" == "status" ]]; then
     for monitor in "${MONITORS[@]}"; do
         status "$monitor"
     done
