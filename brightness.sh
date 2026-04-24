@@ -3,7 +3,9 @@
 set -euo pipefail
 
 command -v xrandr >/dev/null || { echo "xrandr not found"; exit 1; }
-command -v bc >/dev/null || { echo "bc not found"; exit 1; }
+
+XRANDR_OUTPUT=$(xrandr --verbose --current)
+XRANDR_SIMPLE=$(xrandr)
 
 MIN_BRIGHTNESS=0.3
 MAX_BRIGHTNESS=3.0
@@ -35,12 +37,19 @@ function help() {
     echo
 }
 
-is_connected() {
-    local monitor="$1"
-    xrandr | awk -v m="$monitor" '$1 == m && / connected/ {found=1} END {exit !found}'
+function is_connected() {
+    grep -q "^$1 connected" <<< "$XRANDR_SIMPLE"
 }
 
-change_brightness() {
+function get_brightness() {
+    awk -v m="$1" '
+    $0 ~ "^"m" " {found=1; next}
+    found && /Brightness:/ {print $2; exit}
+    found && /^[^ \t]/ {exit}
+    ' <<< "$XRANDR_OUTPUT"
+}
+
+function change_brightness() {
 
     local operation="$1"
     local monitor="$2"
@@ -60,29 +69,31 @@ change_brightness() {
     
     # Get current brightness
     local current_brightness
-    current_brightness=$(xrandr --verbose --current | grep "^$monitor" -A5 | grep -i brightness | awk '{print $2}')
-    #TODO: fix this command
-    # xrandr --verbose --current | awk -v m="$monitor" '$0 ~ "^"m {found=1} found && /Brightness/ {print $2; exit}'
-    # current_brightness=$(xrandr --verbose --current | awk -v m="$monitor" '$0 ~ "^"m {found=1} found && /Brightness/ {print $2}')
+    current_brightness=$(get_brightness "$monitor")
+    
+    if [[ -z "$current_brightness" ]]; then
+        echo "Warning: could not detect brightness for '$monitor'"
+        return 0
+    fi
 
     # Compute new brightness (with higher internal precision)
     local raw_brightness
     if [[ "$operation" == "up" ]]; then
-        raw_brightness=$(echo "scale=4; $current_brightness + $step" | bc -l)
+        raw_brightness=$(awk -v a="$current_brightness" -v b="$step" 'BEGIN {printf "%.4f", a + b}')
     elif [[ "$operation" == "down" ]]; then
-        raw_brightness=$(echo "scale=4; $current_brightness - $step" | bc -l)
+        raw_brightness=$(awk -v a="$current_brightness" -v b="$step" 'BEGIN {printf "%.4f", a - b}')
     else
         echo "Error: invalid operation"
         return 1
     fi
 
     # Ensure it does not go below minimum
-    if (( $(echo "$raw_brightness < $MIN_BRIGHTNESS" | bc -l) )); then
+    if awk -v a="$raw_brightness" -v b="$MIN_BRIGHTNESS" 'BEGIN {exit !(a < b)}'; then
         raw_brightness=$MIN_BRIGHTNESS
     fi
 
     # Ensure it does not exceed maximum
-    if (( $(echo "$raw_brightness > $MAX_BRIGHTNESS" | bc -l) )); then
+    if awk -v a="$raw_brightness" -v b="$MAX_BRIGHTNESS" 'BEGIN {exit !(a > b)}'; then
         raw_brightness=$MAX_BRIGHTNESS
     fi
 
@@ -98,7 +109,11 @@ change_brightness() {
 function status() {
     local monitor="$1"
     local value
-    value=$(xrandr --verbose --current | grep "^$monitor" -A5 | grep -i brightness | awk '{print $2}')
+    value=$(get_brightness "$monitor")
+
+    if [[ -z "$value" ]]; then
+        value="unknown"
+    fi
     printf "Monitor %s brightness: %s\n" "$monitor" "$value"
 }
 
@@ -129,7 +144,7 @@ while [[ "$#" -gt 0 ]]; do
         -s|--step)
             [[ $# -lt 2 ]] && { echo "Missing value for $1"; exit 1; }
             STEP="$2"
-            if ! [[ $(echo "$STEP >= 0 && $STEP <= 1" | bc -l) -eq 1 ]]; then
+            if ! awk -v s="$STEP" 'BEGIN {exit !(s >= 0 && s <= 1)}'; then
                 echo "Error: step must be between 0.0 and 1.0"
                 exit 1
             fi
@@ -174,8 +189,8 @@ if [[ ${#MONITORS[@]} -eq 0 ]]; then
 fi
 
 if [[ -n "$BRIGHTNESS" ]]; then
-    
-    if (( $(echo "$BRIGHTNESS < $MIN_BRIGHTNESS" | bc -l) )) || (( $(echo "$BRIGHTNESS > $MAX_BRIGHTNESS" | bc -l) )); then
+
+    if awk -v a="$BRIGHTNESS" -v min="$MIN_BRIGHTNESS" -v max="$MAX_BRIGHTNESS" 'BEGIN {exit !(a < min || a > max)}'; then
         echo "Error: Brightness must be between [$MIN_BRIGHTNESS-$MAX_BRIGHTNESS]"
         help
         exit 1
