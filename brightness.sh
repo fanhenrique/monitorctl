@@ -119,7 +119,7 @@ function status() {
 
 function findMonitor(){
     # Find monitor name with: xrandr | grep "connected"
-    xrandr | grep "connected"
+    grep " connected" <<< "$XRANDR_SIMPLE"
 }
 
 while [[ "$#" -gt 0 ]]; do
@@ -180,7 +180,7 @@ done
 if [[ ${#MONITORS[@]} -eq 0 ]]; then
     if [[ "$OPERATION" == "status" ]]; then
         # Auto-detect all monitors
-        mapfile -t MONITORS < <(xrandr | awk '/ connected/ {print $1}')
+        mapfile -t MONITORS < <(awk '/ connected/ {print $1}' <<< "$XRANDR_SIMPLE")
     else
         echo "Error: At least one monitor is required."
         help
