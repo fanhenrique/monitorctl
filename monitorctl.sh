@@ -28,7 +28,7 @@ if [[ -n "$NOW" && -n "$START_NIGHT" && -n "$END_NIGHT" ]]; then
     [[ $NOW -gt 0 && $NOW -lt $END_NIGHT ]] && BRIGHTNESS=$NIGHT_BRIGHTNESS
     # [END_NIGHT-START_NIGHT]
     [[ $NOW -gt $END_NIGHT && $NOW -lt $START_NIGHT ]] && BRIGHTNESS=$DAY_BRIGHTNESS
-    # [START_NIGHT-23:59] 
+    # [START_NIGHT-23:59]
     # 23:59 in seconds = 1439
     [[ $NOW -gt $START_NIGHT && $NOW -lt 1439 ]] && BRIGHTNESS=$NIGHT_BRIGHTNESS
 else
@@ -37,14 +37,23 @@ fi
 
 CURRENT_BRIGHTNESS="$(xrandr --verbose --current | grep "^HDMI-A-0" -A5 | tail -n1 | awk '/Brightness/ {print $2}')"
 
-# Update cron job if configuration file has changed
-command $INTERVAL $LOG_FILE > /dev/null
+# Update cron job if configuration file has changed - REMOVED for Systemd migration
+# command $INTERVAL $LOG_FILE > /dev/null
 
 if [ "$(echo "$CURRENT_BRIGHTNESS > $BRIGHTNESS" | bc -l)" -eq 1 ]; then
     # Unix time at the time of executing the below command
     printf "$(date +%s): "
     # Adjust brightness according to config file
     /usr/local/bin/brightness --brightness $BRIGHTNESS --monitor $MONITOR
+
+    redshift -O 4000
+    # TODO verificar essa mensagem no arquivo de log
+    # error: XDG_RUNTIME_DIR is invalid or not set in the environment.
+    # Could not connect to wayland display, exiting.
+    # Failed to start adjustment method wayland.
+    # Trying next method...
+    # Using method `randr'.
+
 fi
 
 exit 0

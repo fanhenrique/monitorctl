@@ -29,16 +29,29 @@ echo "utils.sh copied to /usr/local/lib/monitorctl/utils"
 
 printf "\nInstallation Completed Successfully\n"
 
-printf "\nStarting Configuration cron ...\n"
+printf "\nStarting Configuration Systemd User Daemon ...\n"
 
 source /usr/local/lib/monitorctl/utils
 
 LOG_FILE=$(get_value 'LOG_FILE')
-INTERVAL=$(get_value 'INTERVAL')
+# INTERVAL=$(get_value 'INTERVAL') # Not used for systemd timer setup here, defined in timer file or could be dynamic
 
 # Delete old log file
 delete_log $LOG_FILE
 
-command $INTERVAL $LOG_FILE
+# Remove legacy cron job if exists
+(crontab -l 2>/dev/null | grep -v '/usr/local/lib/monitorctl/monitorctl') | crontab -
+echo "Removed legacy cron job."
 
-printf "\nConfiguration cron Completed Successfully\n"
+# Install Systemd Units
+USER_SYSTEMD_DIR="$HOME/.config/systemd/user"
+mkdir -p "$USER_SYSTEMD_DIR"
+cp monitorctl.service "$USER_SYSTEMD_DIR/"
+cp monitorctl.timer "$USER_SYSTEMD_DIR/"
+echo "Copied systemd units to $USER_SYSTEMD_DIR"
+
+systemctl --user daemon-reload
+systemctl --user enable --now monitorctl.timer
+echo "Systemd timer enabled and started."
+
+printf "\nConfiguration Systemd User Daemon Completed Successfully\n"

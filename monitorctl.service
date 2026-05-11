@@ -1,16 +1,12 @@
 [Unit]
-Description=Automatic brightness control
-After=multi-user.target
+Description=Monitor Brightness Control Service
+After=graphical.target graphical-session.target
 
 [Service]
-ExecStartPre=/usr/local/bin/monitorctl --reset --monitor HDMI-A-0
-ExecStart=/usr/local/bin/monitorctl --down --step 30 --monitor HDMI-A-0
 Type=oneshot
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=%h/.Xauthority
+ExecStart=/usr/local/lib/monitorctl/monitorctl
 
 [Install]
-WantedBy=multi-user.target
-
-
-
-
-
+WantedBy=default.target
